@@ -5,7 +5,7 @@ var amqp = require('amqplib/callback_api');
 var args = process.argv.slice(2);
 
 if (args.length === 0) {
-    console.log("Usage: technicia.js <joint>.* <joint>.*");
+    console.log("Usage: technician.js <joint>.* <joint>.*");
     process.exit(1);
 }
 
