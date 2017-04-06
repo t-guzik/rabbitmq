@@ -19,5 +19,5 @@ amqp.connect('amqp://localhost', function (err, conn) {
       console.log(`[SENT] '${msg}'`);
   });
 
-  setTimeout(function () { conn.close(); process.exit(0); }, 500);
+  sgetTimeout(function () { conn.close(); process.exit(0); }, 500);
 });
