@@ -19,7 +19,7 @@ amqp.connect('amqp://localhost', function (err, conn) {
             ch.assertQueue(data[0]);
             ch.prefetch (1);
             console.log(' [*] Waiting for logs. To exit press CTRL+C');
-            ch.bindQueue(data[0], exchange, data[0]);
+            ch.bindQueue(data[0], exchange, key);
 
             ch.consume(data[0], function (msg) {
                 console.log(` [RECEIVED] '${msg.content.toString()}'`);
