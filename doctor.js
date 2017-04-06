@@ -15,9 +15,9 @@ amqp.connect('amqp://localhost', function (err, conn) {
       var msg = `Perform a medical examination Mr/Mrs ${userData[1]}\'s ${userData[0]}`;
 
       ch.assertExchange(exchange, 'topic', { durable: false });
-      ch.publish(exchange, userData[0], new Buffer(msg));
+      ch.publish(exchange, key, new Buffer(msg));
       console.log(`[SENT] '${msg}'`);
   });
 
-  sgetTimeout(function () { conn.close(); process.exit(0); }, 500);
+  setTimeout(function () { conn.close(); process.exit(0); }, 500);
 });
