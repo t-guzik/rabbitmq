@@ -1,8 +1,10 @@
 @echo off
+cd js
+START node admin
 START node technician knee.* ankle.*
 START node technician knee.* elbow.*
 
-set loopcount=10
+set loopcount=2
 :loop
 CALL node doctor knee.Guzik &
 CALL node doctor knee.Nowak &
