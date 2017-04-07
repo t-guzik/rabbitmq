@@ -16,11 +16,11 @@ amqp.connect('amqp://localhost', function(err, conn) {
     conn.createChannel(function(err, ch) {
         const exchange = 'medical_examination';
         const exchange_result = 'medical_examination_result';
-        const exchange_logging = 'logging';
+        const exchange_info = 'admin_info';
 
         ch.assertExchange(exchange, 'topic', { durable: false }); // queue  won't  survive  broker  restarts
         ch.assertExchange(exchange_result, 'topic', { durable: false }); // queue  won't  survive  broker  restarts
-        ch.assertExchange(exchange_logging, 'fanout', { durable: false }); // queue  won't  survive  broker  restarts
+        ch.assertExchange(exchange_info, 'fanout', { durable: false }); // queue  won't  survive  broker  restarts
 
         /** Handle all examination types */
         args.forEach(function(key) {
@@ -32,7 +32,7 @@ amqp.connect('amqp://localhost', function(err, conn) {
             console.log('[*] Waiting for logs. To exit press CTRL+C');
             ch.consume(pattern[0], function(msg) {
                 console.log(`[RECEIVED] '${msg.content.toString()}'`);
-                const examinationData = msg.fields.routingKey.split('.');   // [joint, lastname]
+                const examinationData = msg.fields.routingKey.split('.'); // [joint, lastname]
                 const reply = `Mr/Mrs ${examinationData[1]}\'s medical examination result: ${examinationData[0].toUpperCase()} TWISTED`;
                 ch.publish(exchange_result, msg.properties.replyTo, new Buffer(reply));
                 console.log(`[SENT] '${reply}'`);
@@ -40,9 +40,9 @@ amqp.connect('amqp://localhost', function(err, conn) {
         });
 
         /** Logs from admin */
-        ch.assertQueue('', { exclusive: true }, function (err, q) { // unique, temporary queue
-            ch.bindQueue(q.queue, exchange_logging, 'log');
-            ch.consume(q.queue, function (msg) {
+        ch.assertQueue('', { exclusive: true }, function(err, q) { // unique, temporary queue
+            ch.bindQueue(q.queue, exchange_info, 'log');
+            ch.consume(q.queue, function(msg) {
                 console.log(`[ADMIN] '${msg.content}'`);
             }, { noAck: true });
         });
