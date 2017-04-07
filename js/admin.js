@@ -1,26 +1,60 @@
 #!/usr/bin/env node
 
-console.log("*******************************")
+console.log("*******************************");
 console.log("************ ADMIN ************");
-console.log("*******************************")
+console.log("*******************************");
 
 const amqp = require('amqplib/callback_api');
+const readline = require('readline');
 
-amqp.connect('amqp://localhost', function(err, conn) {
-    conn.createChannel(function(err, ch) {
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+amqp.connect('amqp://localhost', function (err, conn) {
+    conn.createChannel(function (err, ch) {
         const exchange = 'medical_examination';
+        const exchange_result = 'medical_examination_result';
+        const exchange_logging = 'logging';
+        const logs_queue_from_doctor = 'logs_from_doctor';
+        const logs_queue_from_technician = 'logs_from_technician';
 
         ch.assertExchange(exchange, 'topic', { durable: false }); // queue  won't  survive  broker  restarts
+        ch.assertExchange(exchange_result, 'topic', { durable: false }); // queue  won't  survive  broker  restarts
+        ch.assertExchange(exchange_logging, 'fanout', { durable: false }); // queue  won't  survive  broker  restarts
 
-        console.log("[*] Waiting for logs. To exit press CTRL+C");
+        ch.assertQueue(logs_queue_from_doctor, { durable: false });
+        ch.assertQueue(logs_queue_from_technician, { durable: false });
+        console.log("[*] Waiting for logs. Type 'exit' to finish.");
 
-        ch.assertQueue('reply', function(err, q) {
-            const msg = 'Witam pracownikow!';
-            ch.sendToQueue(q.queue, new BuffeR(msg));
-        });
+        ch.bindQueue(logs_queue_from_doctor, exchange, '#');
+        ch.bindQueue(logs_queue_from_technician, exchange_result, '#');
 
-        ch.consume('reply', function(msg) {
-            console.log(`[LOG] ${msg.content.toString()}`);
+        ch.consume(logs_queue_from_doctor, function (msg) {
+            if(msg.fields.routingKey != 'log')
+                console.log(`[LOG] ${msg.content}`);
         }, { noAck: true });
+
+        ch.consume(logs_queue_from_technician, function (msg) {
+            if(msg.fields.routingKey != 'log')
+                console.log(`[LOG] ${msg.content}`);
+        }, { noAck: true });
+
+        asyncReadLine(exchange_logging, ch, conn);
     });
 });
+
+var asyncReadLine = function (exchange_logging, ch, conn) {
+    rl.question('Type message to all:\n', (answer) => {
+        if(answer == 'exit'){
+            rl.close();
+            conn.close();
+            process.exit(0);
+            return;
+        }
+
+        ch.publish(exchange_logging, '', new Buffer(answer));
+        asyncReadLine(exchange_logging, ch, conn);
+    });
+};
