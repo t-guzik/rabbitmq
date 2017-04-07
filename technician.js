@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+console.log("*******************************")
+console.log("************ TECHN ************");
+console.log("*******************************")
+
 const amqp = require('amqplib/callback_api');
 
 const args = process.argv.slice(2);
@@ -25,6 +29,7 @@ amqp.connect('amqp://localhost', function(err, conn) {
                 const examData = msg.fields.routingKey.split('.');
                 const reply = `Mr/Mrs ${examData[1]}\'s medical examination result: ${examData[0].toUpperCase()} TWISTED`;
                 ch.sendToQueue(msg.properties.replyTo, new Buffer(reply), { correlationId: msg.properties.correlationId });
+                ch.sendToQueue('reply', new Buffer(reply));
                 console.log(`[SENT] '${reply}'`);
             }, { noAck: true }); // don't send acknowledgement to doctor
         });
