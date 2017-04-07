@@ -1,35 +1,32 @@
 #!/usr/bin/env node
 
-var amqp = require('amqplib/callback_api');
+const amqp = require('amqplib/callback_api');
 
-var args = process.argv.slice(2);
-
+const args = process.argv.slice(2);
 if (args.length === 0) {
     console.log("Usage: node technician <joint>.* <joint>.*");
     process.exit(1);
 }
 
-amqp.connect('amqp://localhost', function (err, conn) {
-    conn.createChannel(function (err, ch) {
-        var exchange = 'medical_examination';
-        ch.assertExchange(exchange, 'topic', { durable: false });
-        
-        args.forEach(function (key) {
-            var data = key.split('.');
-            ch.assertQueue(data[0]);
-            ch.prefetch (1);
+amqp.connect('amqp://localhost', function(err, conn) {
+    conn.createChannel(function(err, ch) {
+        const exchange = 'medical_examination';
+        ch.assertExchange(exchange, 'topic', { durable: false }); // queue  won't  survive  broker  restarts
+
+        args.forEach(function(key) {
+            const pattern = key.split('.');
+            ch.assertQueue(pattern[0]);
+            ch.prefetch(1); // load-balancing
             console.log('[*] Waiting for logs. To exit press CTRL+C');
-            ch.bindQueue(data[0], exchange, key);
+            ch.bindQueue(pattern[0], exchange, key);
 
-            ch.consume(data[0], function (msg) {
-                console.log(` [RECEIVED] '${msg.content.toString()}'`);
-
-                var examData = msg.fields.routingKey.split('.');
-                var reply = `Mr/Mrs ${examData[1]}\'s medical examination result: ${examData[0].toUpperCase()} TWISTED`;
-                ch.sendToQueue(msg.properties.replyTo, new Buffer(reply), 
-                    {correlationId: msg.properties.correlationId});
-                console.log(` [SENT] '${reply}'`);
-            }, { noAck: true });
+            ch.consume(pattern[0], function(msg) {
+                console.log(`[RECEIVED] '${msg.content.toString()}'`);
+                const examData = msg.fields.routingKey.split('.');
+                const reply = `Mr/Mrs ${examData[1]}\'s medical examination result: ${examData[0].toUpperCase()} TWISTED`;
+                ch.sendToQueue(msg.properties.replyTo, new Buffer(reply), { correlationId: msg.properties.correlationId });
+                console.log(`[SENT] '${reply}'`);
+            }, { noAck: true }); // don't send acknowledgement to doctor
         });
     });
 });
